@@ -5,18 +5,21 @@ import codecs
 import datetime as dt
 from datetime import datetime
 
-column_names = ["Record_ID", "CAMPNO", "MAKETXT", "MODELTXT",
-                "YEARTXT", "MFGCAMPNO", "COMPNAME", "MFGNAME",
-                "BGMAN", "ENDMAN", "RCLTYPECD", "POTAFF", "ODATE",
-                "INFLUENCED_BY", "MFGTXT", "RCDATE", "DATEA",
-                "RPNO", "FMVSS", "DESC_DEFECT", "CONEQUENCE_DEFECT",
-                "CORRECTIVE_ACTION", "NOTES", "RCL_CMPT_ID"
-                ]
+print("Start")
 
 
 def clean_data(file_name):
-    with codecs.open(file_name, "r", encoding='utf-8', errors='ignore') as fdata:
+    column_names = ["Record_ID", "CAMPNO", "MAKETXT", "MODELTXT",
+                    "YEARTXT", "MFGCAMPNO", "COMPNAME", "MFGNAME",
+                    "BGMAN", "ENDMAN", "RCLTYPECD", "POTAFF", "ODATE",
+                    "INFLUENCED_BY", "MFGTXT", "RCDATE", "DATEA",
+                    "RPNO", "FMVSS", "DESC_DEFECT", "CONEQUENCE_DEFECT",
+                    "CORRECTIVE_ACTION", "NOTES", "RCL_CMPT_ID"
+                    ]
+
+    with codecs.open(file_name, "rb", encoding='utf-8', errors='ignore') as fdata:
         df = pd.read_table(fdata, names=column_names, header=None)
+        print("read table")
 
     # converts content of column 'RCDATE' to desired timestamp format
     df['Timestamp'] = pd.to_datetime(df['RCDATE'], format='%Y%m%d', errors='ignore')
@@ -70,3 +73,10 @@ def clean_data(file_name):
                                                   "METRIS") == False)]
 
     df = df.dropna(subset=['Timestamp', 'Year'])
+
+    df.to_excel('output.xlsx')
+
+
+if __name__ == '__main__':
+    clean_data('FLAT_RCL.txt')
+    print("Done")
