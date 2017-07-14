@@ -5,8 +5,6 @@ import codecs
 import datetime as dt
 from datetime import datetime
 
-print("Start")
-
 
 def clean_data(file_name):
     column_names = ["Record_ID", "CAMPNO", "MAKETXT", "MODELTXT",
@@ -19,7 +17,7 @@ def clean_data(file_name):
 
     with codecs.open(file_name, "rb", encoding='utf-8', errors='ignore') as fdata:
         df = pd.read_table(fdata, names=column_names, header=None)
-        print("read table")
+        print("[INFO] Data Table Read")
 
     # converts content of column 'RCDATE' to desired timestamp format
     df['Timestamp'] = pd.to_datetime(df['RCDATE'], format='%Y%m%d', errors='ignore')
@@ -30,34 +28,30 @@ def clean_data(file_name):
     # sort dataframe by the recall year in order to have 'month/year' groups in chronological order
     df = df.sort(columns='Year')
 
-    # create 'Month/Year' column to prepare for grouping
     df['Week/Year'] = df['Timestamp'].apply(lambda x: "%s/%s" % (x.week, x.year))
 
-    # if column 'MAKETXT' lists 'MERCEDES' as content, rename to 'MERCEDES BENZ'
     df.ix[(df.MAKETXT == 'MERCEDES'), ['MAKETXT']] = 'MERCEDES BENZ'
-
-    # if column 'MAKETXT' lists 'MERCEDES' as content, rename to 'MERCEDES BENZ'
     df.ix[(df.MAKETXT == 'MERCEDES-BENZ'), ['MAKETXT']] = 'MERCEDES BENZ'
 
-    # Use when you want Audi, BMW, and Mercedes
-    # We should refactor code to split the dataframe in one area. Aka the "df" should be something like ger_df
-    # df=df[(df['MAKETXT'].str.contains("AUDI|BMW|MERCEDES")==True)
-    #    & (df['MAKETXT'].str.contains("AUDIOVOX")==False)
-    #    & (df['MAKETXT'].str.contains("JL")==False)]
+    # Default value for big 3
+    df['Big_Three'] = 'nr'
+    df['Big_Three'][df['MAKETXT'].str.contains("AUDI")] = 'Audi'
+    df['Big_Three'][df['MAKETXT'].str.contains("BMW")] = 'BMW'
+    df['Big_Three'][df['MAKETXT'].str.contains("MERCEDES")] = 'Mercedes'
 
-    # Use when you want only Mercedes
-    mb_df = df[(df['MAKETXT'].str.contains("MERCEDES BENZ") == True)
-               & (df['MAKETXT'].str.contains("AUDIOVOX") == False)
-               & (df['MAKETXT'].str.contains("JL") == False)]
+    # Cleaning up for some outliers... could be more specific in the prev. search
+    df['Big_Three'][df['MAKETXT'].str.contains("AUDIOVOX")] = 'nr'
+    df['Big_Three'][df['MAKETXT'].str.contains("JL")] = 'nr'
 
-    # Use when you only want SUVs
-    # This is a dirty hodgepodge of random search strings, but had to be done for now...
-    suv_df = mb_df[(df['MODELTXT'].str.contains("M CLASS|"
+    # Isolate MBUSI cars
+    df['MB_Origin'] = 'nr'
+    df['MB_Origin'][df['MODELTXT'].str.contains("M CLASS|"
                                                 "M-CLASS|"
                                                 "ML|"
                                                 "GL|"
-                                                "M") == True)
-                   & (df['MODELTXT'].str.contains("GLK|"
+                                                "M")] = 'MBUSI'
+
+    df['MB_Origin'][df['MODELTXT'].str.contains("GLK|"
                                                   "GLC|"
                                                   "GLA|"
                                                   "MERCEDES|"
@@ -70,13 +64,14 @@ def clean_data(file_name):
                                                   "S63|"
                                                   "S65|"
                                                   "GT S|"
-                                                  "METRIS") == False)]
+                                                "METRIS")] = 'Non-MBUSI'
+
 
     df = df.dropna(subset=['Timestamp', 'Year'])
 
     df.to_excel('output.xlsx')
+    print('[INFO] Finished Excel write')
 
 
 if __name__ == '__main__':
     clean_data('FLAT_RCL.txt')
-    print("Done")
