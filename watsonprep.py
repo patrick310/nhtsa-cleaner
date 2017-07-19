@@ -66,10 +66,17 @@ def clean_data(file_name):
                                                   "GT S|"
                                                 "METRIS")] = 'Non-MBUSI'
 
+    temp_df = df.groupby('CAMPNO')['POTAFF'].apply(lambda x: np.mean(x) / x.count()).to_frame().reset_index(level=0)
 
-    df = df.dropna(subset=['Timestamp', 'Year'])
+    temp_df.columns = ['CAMPNO', 'TOTAFF']
 
-    df.to_excel('output.xlsx')
+    df.dropna(subset=['Timestamp', 'Year'])
+
+    print(temp_df)
+
+    temp_df.merge(df, how='right')
+
+    temp_df.to_excel('output.xlsx')
     print('[INFO] Finished Excel write')
 
 
